@@ -1,0 +1,38 @@
+//@version=5
+indicator("SMA Crossover Strategy with Trailing Stop Loss", overlay=true)
+
+// 定义短周期和长周期SMA
+short_sma_length = input.int(14, title="Short SMA Length")
+long_sma_length = input.int(50, title="Long SMA Length")
+
+// 定义追踪止损百分比
+trailing_stop_percent = input.float(1.0, title="Trailing Stop Percent", minval=0.0) / 100.0
+
+// 计算短周期和长周期SMA
+short_sma_value = ta.sma(close, short_sma_length)
+long_sma_value = ta.sma(close, long_sma_length)
+
+// 绘制SMA
+plot(short_sma_value, title="Short SMA", color=color.blue)
+plot(long_sma_value, title="Long SMA", color=color.red)
+
+// 定义买入和卖出信号
+buy_signal = ta.crossover(short_sma_value, long_sma_value)
+sell_signal = ta.crossunder(short_sma_value, long_sma_value)
+
+// 绘制买入和卖出信号
+plotshape(series=buy_signal, location=location.belowbar, color=color.green, style=shape.labelup, text="BUY")
+plotshape(series=sell_signal, location=location.abovebar, color=color.red, style=shape.labeldown, text="SELL")
+
+// 计算追踪止损价格
+var float trailing_stop_price = na
+if (buy_signal)
+    trailing_stop_price := close * (1 - trailing_stop_percent)
+else if (strategy.position_size > 0)
+    trailing_stop_price := math.max(trailing_stop_price, close * (1 - trailing_stop_percent))
+
+// 策略买入和卖出
+if (buy_signal)
+    strategy.entry("Buy", strategy.long)
+if (sell_signal or (close <= trailing_stop_price))
+    strategy.close("Buy")

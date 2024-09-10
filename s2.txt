@@ -1,0 +1,36 @@
+//@version=5
+indicator("SMA Strategy with ATR Stop Loss", overlay=true)
+
+// 定义SMA周期
+sma_length = input.int(14, title="SMA Length")
+
+// 定义ATR倍数
+atr_multiplier = input.float(1.5, title="ATR Multiplier", minval=0.0)
+
+// 计算SMA
+sma_value = ta.sma(close, sma_length)
+
+// 计算ATR
+atr_value = ta.atr(14)
+
+// 动态止损价格
+var float stop_loss_price = na
+if (ta.crossover(close, sma_value))
+    stop_loss_price := close - atr_multiplier * atr_value
+
+// 绘制SMA
+plot(sma_value, title="SMA", color=color.blue)
+
+// 定义买入和卖出信号
+buy_signal = ta.crossover(close, sma_value)
+sell_signal = ta.crossunder(close, sma_value)
+
+// 绘制买入和卖出信号
+plotshape(series=buy_signal, location=location.belowbar, color=color.green, style=shape.labelup, text="BUY")
+plotshape(series=sell_signal, location=location.abovebar, color=color.red, style=shape.labeldown, text="SELL")
+
+// 策略买入和卖出
+if (buy_signal)
+    strategy.entry("Buy", strategy.long)
+if (sell_signal or (close <= stop_loss_price))
+    strategy.close("Buy")
